@@ -43,7 +43,8 @@ Program ini menampilkan sebuah lingkaran berwarna merah yang bergerak secara hor
 ---
 
 # Susunan file
-
+Ekstrak terlebih dahulu libraries.zip, kemudian move / copy folder TFT_eSPI ke folder libraries yang sudah ada
+di folder tempat menyimpan projek Arduino IDE
 ```text
 Arduino (tempat penyimpanan project)
 │
