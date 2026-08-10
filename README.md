@@ -1,4 +1,4 @@
-# RFID Attendance + TFT ILI9488 (SMPIT SIF)
+# RFID Attendance + TFT ILI9488 (ATALAS Subang Innovation Festival)
 
 Sistem absensi RFID (MFRC522) dengan tampilan TFT 3.5" ILI9488 480x320.
 Data absensi dikirim ke Google Sheets via Google Apps Script.
