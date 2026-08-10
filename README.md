@@ -1,207 +1,93 @@
-# ESP32 + ILI9488 TFT LCD Animation Demo
+# RFID Attendance + TFT ILI9488 (SMPIT SIF)
 
-Contoh program sederhana untuk membuat **animasi objek bergerak** pada **LCD TFT 3.5" ILI9488 (320×480)** menggunakan **ESP32 NodeMCU DevKit** dan library **TFT_eSPI**.
+Sistem absensi RFID (MFRC522) dengan tampilan TFT 3.5" ILI9488 480x320.
+Data absensi dikirim ke Google Sheets via Google Apps Script.
+Dikembangkan dari `project_smpit_sif` (OLED → TFT).
 
-Program ini menampilkan sebuah lingkaran berwarna merah yang bergerak secara horizontal dari sisi kiri menuju sisi kanan layar. Contoh ini bertujuan untuk menunjukkan cara melakukan pembaruan (refresh) tampilan pada LCD TFT menggunakan teknik sederhana dengan menghapus posisi sebelumnya dan menggambar ulang objek pada posisi baru.
+## Pin Mapping
 
----
+| ESP32 | SCK | MISO | MOSI | CS | DC | RST |
+|-------|-----|------|------|-----|-----|-----|
+| TFT ILI9488 | 18 | 19 | 23 | 5 | 2 | 4 |
+| MFRC522 | 18 | 19 | 23 | 15 | – | 14 |
+| Buzzer | – | – | – | – | – | 16 |
 
-# Fitur
+RFID dan TFT berbagi bus SPI (SCK 18, MISO 19, MOSI 23) dengan
+chip select (SS/CS) yang berbeda. Pin RFID dipindah dari 5/4 ke 15/14
+agar tidak bentrok dengan CS dan RST TFT.
 
-* Inisialisasi LCD ILI9488
-* Animasi objek bergerak
-* Penghapusan objek sebelumnya (erase)
-* Penggambaran ulang objek (redraw)
-* Contoh dasar pembuatan animasi pada TFT LCD
+## Library yang Dibutuhkan
 
----
+Install via Library Manager Arduino IDE:
 
-# Perangkat Keras
+- `TFT_eSPI` (Bodmer)
+- `MFRC522`
+- `WiFi` (bawaan ESP32)
+- `HTTPClient` (bawaan ESP32)
+- `WiFiClientSecure` (bawaan ESP32)
 
-* ESP32 NodeMCU DevKit
-* TFT LCD 3.5" ILI9488 SPI (320×480)
-* Kabel jumper
+### Konfigurasi TFT_eSPI
 
----
+Pastikan di `TFT_eSPI/User_Setup.h` (atau `User_Setup_Select.h`):
 
-# Wiring
-
-| LCD ILI9488 | ESP32               |
-| ----------- | ------------------- |
-| VCC         | 3.3V                |
-| GND         | GND                 |
-| SCK         | GPIO18              |
-| SDI (MOSI)  | GPIO23              |
-| SDO (MISO)  | GPIO19 *(opsional)* |
-| CS          | GPIO5               |
-| DC / RS     | GPIO2               |
-| RST         | GPIO4               |
-| LED         | 3.3V                |
-
-> **Catatan:** Pin touch screen tidak diperlukan untuk menjalankan contoh animasi ini.
-
----
-
-# Susunan file
-Ekstrak terlebih dahulu libraries.zip, kemudian move / copy folder TFT_eSPI ke folder libraries yang sudah ada
-di folder tempat menyimpan projek Arduino IDE
-```text
-Arduino (tempat penyimpanan project)
-│
-├── libraries
-│         └── TFT_eSPI
-├── test_tft
-└── test_tft_animation
-
-```
-
----
-
-# Cara Kerja Program
-
-Program bekerja dengan prinsip **erase and redraw**, yaitu menghapus gambar lama kemudian menggambarnya kembali pada posisi yang baru.
-
-Urutan prosesnya adalah sebagai berikut:
-
-1. Menginisialisasi LCD menggunakan library TFT_eSPI.
-2. Mengatur orientasi layar.
-3. Membersihkan layar dengan warna hitam.
-4. Menggambar lingkaran merah pada posisi awal.
-5. Menghapus lingkaran sebelumnya dengan menggambar lingkaran berwarna hitam pada koordinat lama.
-6. Menggeser posisi lingkaran sejauh 1 piksel ke kanan.
-7. Menggambar kembali lingkaran merah pada posisi baru.
-8. Memberikan jeda sekitar 10 ms agar gerakan terlihat halus.
-9. Setelah mencapai sisi kanan layar, posisi lingkaran dikembalikan ke sisi kiri dan animasi diulang terus-menerus.
-
----
-
-# Alur Program
-
-```text
-setup()
-│
-├── Inisialisasi LCD
-├── Mengatur orientasi layar
-└── Membersihkan layar
-
-loop()
-│
-├── Hapus lingkaran lama
-├── Geser posisi X
-├── Jika mencapai batas kanan
-│      └── Kembali ke posisi awal
-├── Gambar lingkaran baru
-├── Delay 10 ms
-└── Ulangi
-```
-
----
-
-# Library yang Digunakan
-
-* TFT_eSPI (Bodmer)
-
-Instal melalui **Library Manager** pada Arduino IDE.
-
----
-
-# Konfigurasi TFT_eSPI
-
-Pastikan file **User_Setup.h** telah disesuaikan.
-
-## Driver LCD
-
-Aktifkan hanya driver berikut:
-
-```cpp
+```c
 #define ILI9488_DRIVER
-```
 
-Pastikan driver lain seperti `ILI9341_DRIVER` dinonaktifkan.
-
----
-
-## Konfigurasi Pin
-
-```cpp
 #define TFT_MISO 19
 #define TFT_MOSI 23
 #define TFT_SCLK 18
-
 #define TFT_CS   5
 #define TFT_DC   2
 #define TFT_RST  4
+
+#define SPI_FREQUENCY 40000000
+
+#define LOAD_GLCD
+#define LOAD_FONT2
+#define LOAD_FONT4
+#define LOAD_FONT6
+#define LOAD_FONT7
+#define LOAD_FONT8
+#define LOAD_GFXFF   // wajib, untuk FreeFont yang dipakai UI
+#define SMOOTH_FONT
 ```
 
----
+## Cara Pakai
 
-## Frekuensi SPI
+1. Sambungkan hardware sesuai tabel pin mapping di atas.
+2. Edit kredensial WiFi di `project_smpit_sif_tft.ino`:
 
-Disarankan menggunakan:
+   ```cpp
+   const char* WIFI_SSID = "Medjay";
+   const char* WIFI_PASSWORD = "devilkiller";
+   ```
 
-```cpp
-#define SPI_FREQUENCY 20000000
-```
+3. Sesuaikan `SCRIPT_URL` dengan URL Apps Script absensi Anda.
+4. Upload `project_smpit_sif_tft.ino` ke ESP32 via Arduino IDE
+   (board: ESP32 Dev Module).
 
----
+## Fitur Tampilan
 
-# Hasil Program
+- **Splash** — logo SMPIT AL IFADAH + progress bar
+- **Menghubungkan WiFi** — spinner berputar
+- **WiFi Connected** — menampilkan IP ESP32
+- **Menunggu kartu** — animasi radar (sweep + pulse) + ikon RFID,
+  indikator status WiFi di header
+- **Kartu terdeteksi** — menampilkan UID kartu
+- **Mengirim data** — spinner selama proses kirim
+- **Hasil absensi** dengan ikon dan warna berbeda:
+  - `TEPAT` → centang hijau, "ABSENSI BERHASIL" + nama + kelas
+  - `TELAT` → segitiga oranye, "ABSENSI TELAT" + IQOB
+  - `SUDAH_ABSEN` → X merah, "ABSENSI DITOLAK"
+  - `DENIED` → X merah, "AKSES DITOLAK / UID TIDAK ADA"
+  - `SHEET_ERROR` / `HTTP ERROR` / `KONEKSI GAGAL` → layar error
 
-Setelah program berhasil diunggah ke ESP32, layar TFT akan menampilkan:
+## Format Respon Google Apps Script
 
-* Latar belakang berwarna hitam.
-* Sebuah lingkaran merah yang bergerak dari kiri ke kanan.
-* Ketika mencapai ujung layar, lingkaran akan kembali ke posisi awal dan bergerak kembali secara terus-menerus.
-
-Animasi ini merupakan contoh dasar yang dapat dikembangkan menjadi berbagai aplikasi seperti:
-
-* Menu grafis
-* Dashboard IoT
-* Indikator status
-* Game sederhana
-* Visualisasi data sensor
-* Antarmuka Human Machine Interface (HMI)
-
----
-
-# Cara Menjalankan
-
-1. Install Arduino IDE.
-2. Install board ESP32 melalui Board Manager.
-3. Install library TFT_eSPI.
-4. Sesuaikan file `User_Setup.h` dengan konfigurasi pin yang digunakan.
-5. Hubungkan ESP32 ke komputer.
-6. Pilih board **ESP32 Dev Module**.
-7. Upload program.
-8. Setelah proses upload selesai, animasi lingkaran akan langsung berjalan pada layar TFT.
-
----
-
-# Troubleshooting
-
-### Layar hanya berwarna putih
-
-Kemungkinan penyebab:
-
-* Driver LCD belum menggunakan `ILI9488_DRIVER`.
-* Konfigurasi pin SPI tidak sesuai.
-* Wiring salah.
-* Modul LCD bukan versi SPI.
-* Konfigurasi `User_Setup.h` belum benar.
-
----
-
-### Animasi tidak bergerak
-
-Periksa hal berikut:
-
-* Fungsi `loop()` berjalan dengan benar.
-* Variabel posisi (`x`) diperbarui setiap iterasi.
-* Nilai `delay()` tidak terlalu besar.
-* Tidak ada fungsi lain yang menghambat proses refresh layar.
-
----
-
-# Lisensi
-
-Proyek ini dibuat sebagai media pembelajaran mengenai penggunaan LCD TFT ILI9488 dengan ESP32 dan dapat digunakan, dimodifikasi, maupun dikembangkan lebih lanjut untuk keperluan pendidikan maupun penelitian.
+| Respon | Arti |
+|---|---|
+| `TEPAT\|NAMA\|KELAS` | Absen masuk berhasil |
+| `TELAT\|NAMA\|KELAS` | Absen tercatat telat (IQOB) |
+| `SUDAH_ABSEN\|NAMA\|KELAS` | Kartu sudah absen hari ini |
+| `DENIED` | UID tidak terdaftar |
+| `SHEET_ERROR` | Masalah di database/sheet |
