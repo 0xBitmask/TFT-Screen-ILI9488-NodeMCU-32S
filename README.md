@@ -76,7 +76,7 @@ Pastikan di `TFT_eSPI/User_Setup.h` (atau `User_Setup_Select.h`):
 
 ## Fitur Tampilan
 
-- **Splash** — logo SMPIT AL IFADAH + progress bar
+- **Splash** — logo SMPIT 'ALAMY + progress bar
 - **Menghubungkan WiFi** — spinner berputar
 - **WiFi Connected** — menampilkan IP ESP32
 - **Menunggu kartu** — animasi radar (sweep + pulse) + ikon RFID,
