@@ -1,4 +1,4 @@
-# RFID Attendance + TFT ILI9488 (ATALAS Subang Innovation Festival)
+# RFID Attendance + TFT ILI9488 (SMPIT SIF)
 
 Sistem absensi RFID (MFRC522) dengan tampilan TFT 3.5" ILI9488 480x320.
 Data absensi dikirim ke Google Sheets via Google Apps Script.
@@ -9,12 +9,17 @@ Dikembangkan dari `project_smpit_sif` (OLED → TFT).
 | ESP32 | SCK | MISO | MOSI | CS | DC | RST |
 |-------|-----|------|------|-----|-----|-----|
 | TFT ILI9488 | 18 | 19 | 23 | 5 | 2 | 4 |
-| MFRC522 | 18 | 19 | 23 | 15 | – | 14 |
+| MFRC522 | 25 | 27 | 26 | 15 | – | 14 |
 | Buzzer | – | – | – | – | – | 16 |
 
-RFID dan TFT berbagi bus SPI (SCK 18, MISO 19, MOSI 23) dengan
-chip select (SS/CS) yang berbeda. Pin RFID dipindah dari 5/4 ke 15/14
-agar tidak bentrok dengan CS dan RST TFT.
+TFT dan RFID sekarang memakai **bus SPI yang terpisah**:
+
+- TFT memakai port **HSPI** (pin tetap 18/19/23/5/2/4).
+- MFRC522 memakai port **VSPI** (SCK 25, MISO 27, MOSI 26) dengan SS 15 dan RST 14.
+
+> **Penting:** aktifkan `#define USE_HSPI_PORT` di `TFT_eSPI/User_Setup.h`
+> (sudah otomatis jika file User_Setup ikut tersinkronisasi dari setup ini).
+> Tanpa ini, TFT dan RC522 berebut port SPI yang sama sehingga RFID tidak terbaca.
 
 ## Library yang Dibutuhkan
 
@@ -32,6 +37,7 @@ Pastikan di `TFT_eSPI/User_Setup.h` (atau `User_Setup_Select.h`):
 
 ```c
 #define ILI9488_DRIVER
+#define USE_HSPI_PORT   // wajib: TFT di port HSPI, RC522 di VSPI
 
 #define TFT_MISO 19
 #define TFT_MOSI 23
@@ -54,7 +60,9 @@ Pastikan di `TFT_eSPI/User_Setup.h` (atau `User_Setup_Select.h`):
 
 ## Cara Pakai
 
-1. Sambungkan hardware sesuai tabel pin mapping di atas.
+1. Sambungkan hardware sesuai tabel pin mapping di atas. Perhatikan bahwa
+   RC522 sekarang memakai pin SCK=25, MISO=27, MOSI=26 (bukan lagi 18/19/23),
+   dan pastikan `#define USE_HSPI_PORT` aktif di `User_Setup.h`.
 2. Edit kredensial WiFi di `project_smpit_sif_tft.ino`:
 
    ```cpp
@@ -68,7 +76,7 @@ Pastikan di `TFT_eSPI/User_Setup.h` (atau `User_Setup_Select.h`):
 
 ## Fitur Tampilan
 
-- **Splash** — logo SMPIT 'ALAMY + progress bar
+- **Splash** — logo SMPIT AL IFADAH + progress bar
 - **Menghubungkan WiFi** — spinner berputar
 - **WiFi Connected** — menampilkan IP ESP32
 - **Menunggu kartu** — animasi radar (sweep + pulse) + ikon RFID,
